@@ -1,0 +1,24 @@
+# permissions for end users to edit customdeployments.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: customdeployment-editor-role
+rules:
+- apiGroups:
+  - crds.k8s.op.asgn
+  resources:
+  - customdeployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - crds.k8s.op.asgn
+  resources:
+  - customdeployments/status
+  verbs:
+  - get

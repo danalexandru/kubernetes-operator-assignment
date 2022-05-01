@@ -3,4 +3,14 @@ layout:
 - go.kubebuilder.io/v3
 projectName: kubernetes-operator-assignment
 repo: kubernetes-operator-assignment
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: k8s.op.asgn
+  group: crds
+  kind: CustomDeployment
+  path: kubernetes-operator-assignment/api/v1
+  version: v1
 version: "3"
