@@ -29,7 +29,6 @@ type CustomDeploymentSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of CustomDeployment. Edit customdeployment_types.go to remove/update
-	// Foo string `json:"foo,omitempty"`
 
 	// Host is where the application is accessible
 	Host string `json:"host"`
@@ -78,9 +77,6 @@ type Image struct {
 	Repository string `json:"repository"`
 	// The tag (version) of the image.
 	Tag string `json:"tag"`
-	// The ImagePullPolicy of the image.
-	// +kubebuilder:validation:Enum=Never;Always;IfNotPresent
-	PullPolicy string `json:"pullPolicy"`
 }
 
 func init() {

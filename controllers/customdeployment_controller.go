@@ -19,7 +19,9 @@ package controllers
 import (
 	"context"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -32,6 +34,11 @@ type CustomDeploymentReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
 }
+
+var (
+	requeue = ctrl.Result{Requeue: true}
+	done    = ctrl.Result{}
+)
 
 //+kubebuilder:rbac:groups=crds.k8s.op.asgn,resources=customdeployments,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=crds.k8s.op.asgn,resources=customdeployments/status,verbs=get;update;patch
@@ -51,7 +58,22 @@ func (r *CustomDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	// TODO(user): your logic here
 
-	return ctrl.Result{}, nil
+	key := types.NamespacedName{
+		Name:      req.Name,
+		Namespace: req.Namespace,
+	}
+
+	customDeployment := &crdsv1.CustomDeployment{}
+	err := r.Get(ctx, key, customDeployment)
+	if err != nil && !errors.IsNotFound(err) {
+		return requeue, err
+	}
+
+	// if err != nil && errors.IsNotFound() {
+	// 	customDeployment
+	// }
+
+	return done, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.

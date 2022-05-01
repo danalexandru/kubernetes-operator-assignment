@@ -4,3 +4,9 @@ metadata:
   name: customdeployment-sample
 spec:
   # TODO(user): Add fields here
+  host: localhost
+  port: 8080
+  replicas: 2
+  image:
+    repository: nxing
+    tag: latest
