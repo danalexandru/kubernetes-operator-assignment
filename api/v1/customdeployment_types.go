@@ -29,13 +29,26 @@ type CustomDeploymentSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Foo is an example field of CustomDeployment. Edit customdeployment_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// Foo string `json:"foo,omitempty"`
+
+	// Host is where the application is accessible
+	Host string `json:"host"`
+
+	// Port is the port where the application is exposed (Default: 8080)
+	Port *uint16 `json:"port,omitempty"`
+
+	// Replicas is the number of CustomDeployment replicas (Default: 1)
+	Replicas *uint16 `json:"replicas,omitempty"`
+
+	// Image is the container image & tag
+	Image Image `json:"image"`
 }
 
 // CustomDeploymentStatus defines the observed state of CustomDeployment
 type CustomDeploymentStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	Deployed bool `json:"deployed"`
 }
 
 //+kubebuilder:object:root=true
@@ -57,6 +70,17 @@ type CustomDeploymentList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []CustomDeployment `json:"items"`
+}
+
+// Image defines the Repository, Tag and ImagePullPolicy of the Ingress Controller Image.
+type Image struct {
+	// The repository of the image.
+	Repository string `json:"repository"`
+	// The tag (version) of the image.
+	Tag string `json:"tag"`
+	// The ImagePullPolicy of the image.
+	// +kubebuilder:validation:Enum=Never;Always;IfNotPresent
+	PullPolicy string `json:"pullPolicy"`
 }
 
 func init() {
