@@ -41,23 +41,25 @@ spec:
               image:
                 description: Image is the container image & tag
                 properties:
-                  repository:
-                    description: The repository of the image.
+                  name:
+                    description: Name is the name of the image.
                     type: string
                   tag:
-                    description: The tag (version) of the image.
+                    description: Tag is the tag (version) of the image.
                     type: string
                 required:
-                - repository
+                - name
                 - tag
                 type: object
               port:
                 description: 'Port is the port where the application is exposed (Default:
                   8080)'
+                format: int32
                 type: integer
               replicas:
                 description: 'Replicas is the number of CustomDeployment replicas
                   (Default: 1)'
+                format: int32
                 type: integer
             required:
             - host

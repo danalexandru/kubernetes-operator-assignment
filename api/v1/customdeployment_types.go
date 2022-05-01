@@ -34,10 +34,10 @@ type CustomDeploymentSpec struct {
 	Host string `json:"host"`
 
 	// Port is the port where the application is exposed (Default: 8080)
-	Port *uint16 `json:"port,omitempty"`
+	Port *int32 `json:"port,omitempty"`
 
 	// Replicas is the number of CustomDeployment replicas (Default: 1)
-	Replicas *uint16 `json:"replicas,omitempty"`
+	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Image is the container image & tag
 	Image Image `json:"image"`
@@ -73,10 +73,25 @@ type CustomDeploymentList struct {
 
 // Image defines the Repository, Tag and ImagePullPolicy of the Ingress Controller Image.
 type Image struct {
-	// The repository of the image.
-	Repository string `json:"repository"`
-	// The tag (version) of the image.
+	// Name is the name of the image.
+	Name string `json:"name"`
+
+	// Tag is the tag (version) of the image.
 	Tag string `json:"tag"`
+}
+
+func (cd *CustomDeployment) ReplaceEmptyFieldsWithDefaultValues() {
+	var (
+		defaultPort     int32 = 8080
+		defaultReplicas int32 = 1
+	)
+	if cd.Spec.Replicas == nil {
+		cd.Spec.Replicas = &defaultReplicas
+	}
+
+	if cd.Spec.Port == nil {
+		cd.Spec.Port = &defaultPort
+	}
 }
 
 func init() {

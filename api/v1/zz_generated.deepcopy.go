@@ -89,12 +89,12 @@ func (in *CustomDeploymentSpec) DeepCopyInto(out *CustomDeploymentSpec) {
 	*out = *in
 	if in.Port != nil {
 		in, out := &in.Port, &out.Port
-		*out = new(uint16)
+		*out = new(int32)
 		**out = **in
 	}
 	if in.Replicas != nil {
 		in, out := &in.Replicas, &out.Replicas
-		*out = new(uint16)
+		*out = new(int32)
 		**out = **in
 	}
 	out.Image = in.Image

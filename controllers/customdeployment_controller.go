@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -27,6 +28,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	crdsv1 "kubernetes-operator-assignment/api/v1"
+
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // CustomDeploymentReconciler reconciles a CustomDeployment object
@@ -64,16 +69,58 @@ func (r *CustomDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	customDeployment := &crdsv1.CustomDeployment{}
+	deployment := &appsv1.Deployment{}
+
 	err := r.Get(ctx, key, customDeployment)
 	if err != nil && !errors.IsNotFound(err) {
 		return requeue, err
 	}
 
-	// if err != nil && errors.IsNotFound() {
-	// 	customDeployment
-	// }
+	err = r.Get(ctx, key, deployment)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			r.createNewDeployment(ctx, customDeployment)
+		}
+	}
 
 	return done, nil
+}
+
+func (r *CustomDeploymentReconciler) createNewDeployment(ctx context.Context, customDeployment *crdsv1.CustomDeployment) {
+	customDeployment.ReplaceEmptyFieldsWithDefaultValues()
+
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      customDeployment.Name,
+			Namespace: customDeployment.Namespace,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: customDeployment.Spec.Replicas,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app": customDeployment.Spec.Image.Name,
+				},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"app": customDeployment.Spec.Image.Name,
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{
+						Name:  customDeployment.Spec.Image.Name,
+						Image: fmt.Sprintf("%s:%s", customDeployment.Spec.Image.Name, customDeployment.Spec.Image.Tag),
+						Ports: []corev1.ContainerPort{{
+							ContainerPort: *customDeployment.Spec.Port,
+						}},
+					}},
+				},
+			},
+		},
+	}
+
+	r.Create(ctx, deployment)
 }
 
 // SetupWithManager sets up the controller with the Manager.

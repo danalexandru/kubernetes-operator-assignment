@@ -8,5 +8,5 @@ spec:
   port: 8080
   replicas: 2
   image:
-    repository: nxing
+    name: nginx
     tag: latest
