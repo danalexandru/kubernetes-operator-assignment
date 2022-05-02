@@ -22,6 +22,7 @@ import (
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
+	"github.com/redhat-cop/operator-utils/pkg/util"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -66,12 +67,13 @@ func main() {
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "a4c1b40e.k8s.op.asgn",
+		Scheme:                     scheme,
+		MetricsBindAddress:         metricsAddr,
+		Port:                       9443,
+		HealthProbeBindAddress:     probeAddr,
+		LeaderElection:             enableLeaderElection,
+		LeaderElectionID:           "a4c1b40e.k8s.op.asgn",
+		LeaderElectionResourceLock: "configmaps",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -79,8 +81,9 @@ func main() {
 	}
 
 	if err = (&controllers.CustomDeploymentReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
+		ReconcilerBase: util.NewReconcilerBase(mgr.GetClient(), mgr.GetScheme(), mgr.GetConfig(), mgr.GetEventRecorderFor("CustomDeploymentReconciler"), mgr.GetAPIReader()),
+		Client:         mgr.GetClient(),
+		Scheme:         mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "CustomDeployment")
 		os.Exit(1)
