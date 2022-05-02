@@ -84,6 +84,51 @@ func (r *CustomDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	customDeployment.ReplaceEmptyFieldsWithDefaultValues()
 	logger.Info(fmt.Sprintf("\n---\ncustomDeployment = %+v\n---\n", customDeployment))
 
+	if customDeployment.GetDeletionTimestamp() == nil {
+		err = r.Client.Get(ctx, key, deployment)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				if err = r.createNewDeployment(ctx, customDeployment); err != nil {
+					return requeue, err
+				}
+			} else {
+				return requeue, err
+			}
+		}
+
+		// Get/Create Service
+		err = r.Client.Get(ctx, key, service)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				if err = r.createNewService(ctx, customDeployment); err != nil {
+					return requeue, err
+				}
+			} else {
+				return requeue, err
+			}
+		}
+	} else {
+		err = r.Client.Get(ctx, key, deployment)
+		if err == nil {
+			err = r.Client.Delete(ctx, deployment)
+			if err != nil {
+				return requeue, err
+			}
+		} else if err != nil && !errors.IsNotFound(err) {
+			return requeue, err
+		}
+
+		err = r.Get(ctx, key, service)
+		if err == nil {
+			err = r.Client.Delete(ctx, service)
+			if err != nil {
+				return requeue, err
+			}
+		} else if err != nil && !errors.IsNotFound(err) {
+			return requeue, err
+		}
+	}
+
 	// if util.IsBeingDeleted(customDeployment) {
 	// 	if !util.HasFinalizer(customDeployment, "CustomDeploymentReconciler") {
 	// 		logger.Info("GREAT")
@@ -104,28 +149,6 @@ func (r *CustomDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	// logger.Info(fmt.Sprintf("\n---\nclient = %+v\nscheme=%+v\n---\n", r.Client, r.Scheme))
 	// Get/Create Regular Deployment
-	err = r.Get(ctx, key, deployment)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			if err = r.createNewDeployment(ctx, customDeployment); err != nil {
-				return requeue, err
-			}
-		} else {
-			return requeue, err
-		}
-	}
-
-	// Get/Create Service
-	err = r.Get(ctx, key, service)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			if err = r.createNewService(ctx, customDeployment); err != nil {
-				return requeue, err
-			}
-		} else {
-			return requeue, err
-		}
-	}
 
 	return done, nil
 }
