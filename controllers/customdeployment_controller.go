@@ -177,7 +177,7 @@ func (r *CustomDeploymentReconciler) createNewDeployment(ctx context.Context, cu
 						Name:  customDeployment.Spec.Image.Name,
 						Image: fmt.Sprintf("%s:%s", customDeployment.Spec.Image.Name, customDeployment.Spec.Image.Tag),
 						Ports: []corev1.ContainerPort{{
-							ContainerPort: *customDeployment.Spec.Port,
+							ContainerPort: 80,
 						}},
 					}},
 				},
@@ -192,6 +192,9 @@ func (r *CustomDeploymentReconciler) createNewService(ctx context.Context, custo
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      customDeployment.Name,
 			Namespace: customDeployment.Namespace,
+			Annotations: map[string]string{
+				"metallb.universe.tf/address-pool": "production-public-ips",
+			},
 		},
 		Spec: corev1.ServiceSpec{
 			// Type: "NodePort",
@@ -200,15 +203,12 @@ func (r *CustomDeploymentReconciler) createNewService(ctx context.Context, custo
 				"app": customDeployment.Spec.Image.Name,
 			},
 			Ports: []corev1.ServicePort{{
-				// Name:     fmt.Sprintf("%s-port", customDeployment.Spec.Image.Name),
-				Name:       fmt.Sprintf("%d-%d", *customDeployment.Spec.Port, 30000),
 				Protocol:   "TCP",
-				Port:       *customDeployment.Spec.Port,
-				TargetPort: intstr.FromInt(int(*customDeployment.Spec.Port)),
-				NodePort:   30000,
+				Port:       80,
+				TargetPort: intstr.FromInt(int(80)),
+				NodePort:   *customDeployment.Spec.Port,
 			}},
-			ClusterIP:   "10.96.60.119",
-			ExternalIPs: []string{"80.11.12.10"},
+			// ClusterIP: "10.96.60.119",
 		},
 	})
 
