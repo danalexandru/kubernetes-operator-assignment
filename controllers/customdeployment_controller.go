@@ -26,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	crdsv1 "kubernetes-operator-assignment/api/v1"
 
@@ -63,9 +62,9 @@ var (
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.2/pkg/reconcile
 func (r *CustomDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger := log.FromContext(ctx)
+	// logger := log.FromContext(ctx)
 
-	logger.Info(fmt.Sprintf("\n---\nreq = %+v\n---\n", req))
+	// logger.Info(fmt.Sprintf("\n---\nreq = %+v\n---\n", req))
 	key := types.NamespacedName{
 		Name:      req.Name,
 		Namespace: req.Namespace,
@@ -82,7 +81,7 @@ func (r *CustomDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	customDeployment.ReplaceEmptyFieldsWithDefaultValues()
-	logger.Info(fmt.Sprintf("\n---\ncustomDeployment = %+v\n---\n", customDeployment))
+	// logger.Info(fmt.Sprintf("\n---\ncustomDeployment = %+v\n---\n", customDeployment))
 
 	if customDeployment.GetDeletionTimestamp() == nil {
 		err = r.Client.Get(ctx, key, deployment)
@@ -208,7 +207,7 @@ func (r *CustomDeploymentReconciler) createNewService(ctx context.Context, custo
 				TargetPort: intstr.FromInt(int(80)),
 				NodePort:   *customDeployment.Spec.Port,
 			}},
-			// ClusterIP: "10.96.60.119",
+			ExternalIPs: []string{customDeployment.Spec.Host},
 		},
 	})
 

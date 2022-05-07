@@ -131,3 +131,14 @@ $(CONTROLLER_GEN): $(LOCALBIN)
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
 	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+
+.PHONY: apply-sample
+apply-sample:
+	kubectl apply -f config/samples/crds_v1_customdeployment.yaml
+
+.PHONY: delete-sample
+delete-sample:
+	kubectl delete -f config/samples/crds_v1_customdeployment.yaml
+	kubectl delete deployments.apps customdeployment-sample
+	kubectl delete services customdeployment-sample
+
