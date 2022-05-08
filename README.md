@@ -1,30 +1,114 @@
 # kubernetes-operator-assignment
-// TODO(user): Add simple overview of use/purpose
 
-## Description
-// TODO(user): An in-depth paragraph about your project and overview of use
+## <a id="description"></a> Description
+This application revolves around the operator **CustomDeployment** which creates:
+- a regular **Deployment** that creates pods running the **nginx** image
+- a **Service**
+- a **ClusterIssuer** using **cert-manager**
 
-## Getting Started
-You’ll need a Kubernetes cluster to run against. You can use [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing, or run against a remote cluster.
-**Note:** Your controller will automatically use the current context in your kubeconfig file (i.e. whatever cluster `kubectl cluster-info` shows).
+The kubernetes cluster used was created using **kind**.
 
-### Running on the cluster
-1. Install Instances of Custom Resources:
+## Prerequisites
+- Install [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/):
+    ```sh
+    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    curl -LO "https://dl.k8s.io/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+    echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+    sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+    ```
+
+- Install [kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation) for the local cluster:
+    ```sh
+    curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.12.0/kind-linux-amd64
+    chmod +x ./kind
+    mv ./kind usr/local/bin/kind
+    ```
+- Install [kubebuilder](https://github.com/kubernetes-sigs/kubebuilder/releases/tag/v3.4.1) for initializing, creating and running your CRDs:
+    ```text
+    Download the latest release and put it in your path.
+    ```
+
+- Install [cert-manager](https://cert-manager.io/docs/installation/) for the certificate issuer:
+    ```sh
+    kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.8.0/cert-manager.yaml
+    ```
+
+- Install [nginx ingress controller](https://kubernetes.github.io/ingress-nginx/deploy/):
+    ```sh
+    kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.2.0/deploy/static/provider/cloud/deploy.yaml
+    ```
+
+- Install [MetalLB](https://metallb.universe.tf/installation/) for asigning an IP address to the service:
+    - Preparation:
+        - Edit **kube-proxy config**:
+            ```sh
+            kubectl edit configmap -n kube-system kube-proxy
+            ```
+        - Set the following fields:
+            ```yaml
+            apiVersion: kubeproxy.config.k8s.io/v1alpha1
+            kind: KubeProxyConfiguration
+            mode: "ipvs"
+            ipvs:
+            strictARP: true
+            ```
+    - Install:
+        ```sh
+        kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/namespace.yaml
+        kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/metallb.yaml
+        ```
+
+## How to use
+- Create a `yaml` file that contains has the following structure:
+    ```yaml
+    apiVersion: crds.k8s.op.asgn/v1
+    kind: CustomDeployment
+    metadata:
+    name: <custom-deployment-name>
+    spec:
+    host: <host-name>
+    port: <port>
+    replicas: <number-of-replicas>
+    image:
+        name: <image-name>
+        tag: <image-tag>
+    ```
+
+    where:
+    - `<custom-deployment-name>`: the name of the resource
+    - `<host-name>`: the host where the application is accessible
+    - `<port>`: port value (integer between `30000-32767`). Default value: `30000`
+    - `<number-of-replicas>`: the number of pods running the image. Default value: `1`
+    - `<image-name>`: the name of the image (ex: `nginx`)
+    - `<image-tag>`: the tag/version of the image (ex: `latest`)
+
+- Create the Custom Deployment, along with all the other resources mentioned in the [description](#description) section:
+    ```sh
+    kubectl apply -f <your-file>.yaml
+    ```
+
+### Running sample on the cluster
+1. Install the CRDs into the cluster:
 
 ```sh
-kubectl apply -f config/samples/
+make install
 ```
 
-2. Build and push your image to the location specified by `IMG`:
-	
-```sh
-make docker-build docker-push IMG=<some-registry>/kubernetes-operator-assignment:tag
-```
-	
-3. Deploy the controller to the cluster with the image specified by `IMG`:
+2.  Run the **CustomDeployment** controller:
 
 ```sh
-make deploy IMG=<some-registry>/kubernetes-operator-assignment:tag
+make run
+```
+
+3. Install Instances of Custom Resource:
+
+```sh
+make apply-sample
+```
+
+### Delete CRD resource
+```sh
+make delete-sample
 ```
 
 ### Uninstall CRDs
@@ -41,29 +125,11 @@ UnDeploy the controller to the cluster:
 make undeploy
 ```
 
-## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
-
 ### How it works
 This project aims to follow the Kubernetes [Operator pattern](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/)
 
 It uses [Controllers](https://kubernetes.io/docs/concepts/architecture/controller/) 
 which provides a reconcile function responsible for synchronizing resources untile the desired state is reached on the cluster 
-
-### Test It Out
-1. Install the CRDs into the cluster:
-
-```sh
-make install
-```
-
-2. Run your controller (this will run in the foreground, so switch to a new terminal if you want to leave it running):
-
-```sh
-make run
-```
-
-**NOTE:** You can also run this in one step by running: `make install run`
 
 ### Modifying the API definitions
 If you are editing the API definitions, generate the manifests such as CRs or CRDs using:

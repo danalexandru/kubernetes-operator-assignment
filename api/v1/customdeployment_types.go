@@ -82,7 +82,7 @@ type Image struct {
 
 func (cd *CustomDeployment) ReplaceEmptyFieldsWithDefaultValues() {
 	var (
-		defaultPort     int32 = 8080
+		defaultPort     int32 = 30000
 		defaultReplicas int32 = 1
 	)
 	if cd.Spec.Replicas == nil {
