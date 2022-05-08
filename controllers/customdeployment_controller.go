@@ -211,7 +211,6 @@ func (r *CustomDeploymentReconciler) createNewService(ctx context.Context, custo
 				TargetPort: intstr.FromInt(int(80)),
 				NodePort:   *customDeployment.Spec.Port,
 			}},
-			ExternalIPs: []string{"86.120.240.137"},
 		},
 	})
 }
