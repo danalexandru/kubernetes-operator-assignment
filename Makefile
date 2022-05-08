@@ -141,4 +141,5 @@ delete-sample:
 	kubectl delete -f config/samples/crds_v1_customdeployment.yaml
 	kubectl delete deployments.apps customdeployment-sample
 	kubectl delete services customdeployment-sample
+	kubectl delete clusterissuers.cert-manager.io customdeployment-sample
 
