@@ -136,6 +136,10 @@ $(ENVTEST): $(LOCALBIN)
 get-ingress-controller:
 	kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.2.0/deploy/static/provider/cloud/deploy.yaml
 
+.PHONY: tapply-metallb-configmap
+apply-metallb-configmap:
+	kubectl apply -f config/samples/metallb-configmap.yaml
+
 .PHONY: apply-sample
 apply-sample:
 	kubectl apply -f config/samples/crds_v1_customdeployment.yaml

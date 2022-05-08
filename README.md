@@ -57,7 +57,10 @@ The kubernetes cluster used was created using **kind**.
         kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/namespace.yaml
         kubectl apply -f https://raw.githubusercontent.com/metallb/metallb/v0.12.1/manifests/metallb.yaml
         ```
-
+    - Install the config map for MetalLB:
+        ```sh
+        make apply-metallb-configmap 
+        ```
 ## How to use
 - Create a `yaml` file that contains has the following structure:
     ```yaml
