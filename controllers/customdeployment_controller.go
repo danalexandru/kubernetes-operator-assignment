@@ -29,10 +29,14 @@ import (
 
 	crdsv1 "kubernetes-operator-assignment/api/v1"
 
+	cmacme "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
+	certmgv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	"github.com/redhat-cop/operator-utils/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1beta1 "k8s.io/api/extensions/v1beta1"
+
+	// v1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -62,9 +66,6 @@ var (
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.11.2/pkg/reconcile
 func (r *CustomDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	// logger := log.FromContext(ctx)
-
-	// logger.Info(fmt.Sprintf("\n---\nreq = %+v\n---\n", req))
 	key := types.NamespacedName{
 		Name:      req.Name,
 		Namespace: req.Namespace,
@@ -73,6 +74,7 @@ func (r *CustomDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	customDeployment := &crdsv1.CustomDeployment{}
 	deployment := &appsv1.Deployment{}
 	service := &corev1.Service{}
+	issuer := &certmgv1.ClusterIssuer{}
 
 	// Get Custom Deployment
 	err := r.Get(ctx, key, customDeployment)
@@ -81,7 +83,6 @@ func (r *CustomDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	customDeployment.ReplaceEmptyFieldsWithDefaultValues()
-	// logger.Info(fmt.Sprintf("\n---\ncustomDeployment = %+v\n---\n", customDeployment))
 
 	if customDeployment.GetDeletionTimestamp() == nil {
 		err = r.Client.Get(ctx, key, deployment)
@@ -106,7 +107,20 @@ func (r *CustomDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 				return requeue, err
 			}
 		}
+
+		// Get/Create Issuer
+		err = r.Client.Get(ctx, key, issuer)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				if err = r.createNewIssuer(ctx, customDeployment); err != nil {
+					return requeue, err
+				}
+			} else {
+				return requeue, err
+			}
+		}
 	} else {
+		// Delete Deployment
 		err = r.Client.Get(ctx, key, deployment)
 		if err == nil {
 			err = r.Client.Delete(ctx, deployment)
@@ -117,6 +131,7 @@ func (r *CustomDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			return requeue, err
 		}
 
+		// Delete Service
 		err = r.Get(ctx, key, service)
 		if err == nil {
 			err = r.Client.Delete(ctx, service)
@@ -126,28 +141,18 @@ func (r *CustomDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		} else if err != nil && !errors.IsNotFound(err) {
 			return requeue, err
 		}
+
+		// // Delete Issuer
+		err = r.Client.Get(ctx, key, issuer)
+		if err == nil {
+			err = r.Client.Delete(ctx, issuer)
+			if err != nil {
+				return requeue, err
+			}
+		} else if err != nil && !errors.IsNotFound(err) {
+			return requeue, err
+		}
 	}
-
-	// if util.IsBeingDeleted(customDeployment) {
-	// 	if !util.HasFinalizer(customDeployment, "CustomDeploymentReconciler") {
-	// 		logger.Info("GREAT")
-	// 		return reconcile.Result{}, nil
-	// 	}
-
-	// 	logger.Info("STILL GOOD BUT NOT AS GREAT")
-	// } else {
-	// 	logger.Info("NOT GOOD")
-	// }
-
-	// isApplicationMarkedToBeDeleted := customDeployment.GetDeletionTimestamp() != nil
-	// if isApplicationMarkedToBeDeleted {
-	// 	logger.Info("YAY")
-	// } else {
-	// 	logger.Info("BOO")
-	// }
-
-	// logger.Info(fmt.Sprintf("\n---\nclient = %+v\nscheme=%+v\n---\n", r.Client, r.Scheme))
-	// Get/Create Regular Deployment
 
 	return done, nil
 }
@@ -186,8 +191,7 @@ func (r *CustomDeploymentReconciler) createNewDeployment(ctx context.Context, cu
 }
 
 func (r *CustomDeploymentReconciler) createNewService(ctx context.Context, customDeployment *crdsv1.CustomDeployment) error {
-
-	err := r.Create(ctx, &corev1.Service{
+	return r.Create(ctx, &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      customDeployment.Name,
 			Namespace: customDeployment.Namespace,
@@ -207,35 +211,39 @@ func (r *CustomDeploymentReconciler) createNewService(ctx context.Context, custo
 				TargetPort: intstr.FromInt(int(80)),
 				NodePort:   *customDeployment.Spec.Port,
 			}},
-			ExternalIPs: []string{customDeployment.Spec.Host},
+			ExternalIPs: []string{"86.120.240.137"},
 		},
 	})
+}
 
-	if err != nil {
-		return err
-	}
-
-	return r.Create(ctx, &v1beta1.Ingress{
+func (r *CustomDeploymentReconciler) createNewIssuer(ctx context.Context, customDeployment *crdsv1.CustomDeployment) error {
+	var issuerClass string = "nginx"
+	return r.Create(ctx, &certmgv1.ClusterIssuer{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      customDeployment.Name,
 			Namespace: customDeployment.Namespace,
 		},
-		Spec: v1beta1.IngressSpec{
-			Rules: []v1beta1.IngressRule{{
-				Host: customDeployment.Spec.Host,
-				IngressRuleValue: v1beta1.IngressRuleValue{
-					HTTP: &v1beta1.HTTPIngressRuleValue{
-						Paths: []v1beta1.HTTPIngressPath{{
-							Backend: v1beta1.IngressBackend{
-								ServiceName: customDeployment.Spec.Image.Name,
-								ServicePort: intstr.FromInt(int(*customDeployment.Spec.Port)),
-							},
-						}},
+		Spec: certmgv1.IssuerSpec{
+			IssuerConfig: certmgv1.IssuerConfig{
+				ACME: &cmacme.ACMEIssuer{
+					Server: "https://acme-v02.api.letsencrypt.org/directory",
+					PrivateKey: cmmeta.SecretKeySelector{
+						LocalObjectReference: cmmeta.LocalObjectReference{
+							Name: fmt.Sprintf("%s-issuer-key", customDeployment.Name),
+						},
 					},
+					Solvers: []cmacme.ACMEChallengeSolver{{
+						HTTP01: &cmacme.ACMEChallengeSolverHTTP01{
+							Ingress: &cmacme.ACMEChallengeSolverHTTP01Ingress{
+								Class: &issuerClass,
+							},
+						},
+					}},
 				},
-			}},
+			},
 		},
 	})
+
 }
 
 // SetupWithManager sets up the controller with the Manager.

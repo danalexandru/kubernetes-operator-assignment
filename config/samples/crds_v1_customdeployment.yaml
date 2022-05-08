@@ -4,8 +4,7 @@ metadata:
   name: customdeployment-sample
 spec:
   # TODO(user): Add fields here
-  # host: localhost
-  host: 192.168.1.243
+  host: localhost
   port: 30000
   replicas: 2
   image:

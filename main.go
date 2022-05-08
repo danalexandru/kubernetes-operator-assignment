@@ -34,6 +34,8 @@ import (
 
 	crdsv1 "kubernetes-operator-assignment/api/v1"
 	"kubernetes-operator-assignment/controllers"
+
+	certmgv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -46,6 +48,8 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(crdsv1.AddToScheme(scheme))
+
+	utilruntime.Must(certmgv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 
